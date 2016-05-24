@@ -1,0 +1,23 @@
+{
+  "name": "documentdb-client",
+  "version": "0.0.0",
+  "description": "Convenience module from wrapping a DocumentDB collection/bucket",
+  "main": "client.js",
+  "scripts": {
+    "test": "standard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ralphtheninja/documentdb-client.git"
+  },
+  "keywords": [],
+  "author": "Lars-Magnus Skog <ralphtheninja@riseup.net>",
+  "license": "MIT",
+  "dependencies": {
+    "documentdb": "^1.7.0",
+    "inherits": "^2.0.1"
+  },
+  "devDependencies": {
+    "standard": "^7.1.0"
+  }
+}
