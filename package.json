@@ -1,7 +1,7 @@
 {
   "name": "documentdb-client",
   "version": "0.0.0",
-  "description": "Convenience module from wrapping a DocumentDB collection/bucket",
+  "description": "DocumentDB wrapper with strong consistency and automatic indexing",
   "main": "client.js",
   "scripts": {
     "test": "tape test && standard"
@@ -10,7 +10,10 @@
     "type": "git",
     "url": "git+https://github.com/ralphtheninja/documentdb-client.git"
   },
-  "keywords": [],
+  "keywords": [
+    "documentdb",
+    "azure"
+  ],
   "author": "Lars-Magnus Skog <ralphtheninja@riseup.net>",
   "license": "MIT",
   "dependencies": {
