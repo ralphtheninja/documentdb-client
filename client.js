@@ -45,13 +45,16 @@ function createDatabase (id, cb) {
   const query = createQueryById(id)
   this.client.queryDatabases(query).toArray((err, result) => {
     if (err) return cb(err)
-    if (Array.isArray(result)) {
-      assert.equal(result.length, 1, 'more than one database')
+    result = Array.isArray(result) ? result : []
+    if (result.length === 1) {
       return cb(null, result[0])
+    } else if (result.length === 0) {
+      const body = { id: id }
+      const requestOptions = { consistencyLevel: ConsistencyLevel.Strong }
+      this.client.createDatabase(body, requestOptions, cb)
+    } else {
+      assert(false, 'more than one database')
     }
-    const body = { id: id }
-    const requestOptions = { consistencyLevel: ConsistencyLevel.Strong }
-    this.client.createDatabase(body, requestOptions, cb)
   })
 }
 
@@ -72,7 +75,7 @@ function createCollection (id, cb) {
         }
       }
       const requestOptions = { offerType: 'S1' }
-      return this.client.createCollection(dbSelf, collectionSpec, requestOptions, cb)
+      this.client.createCollection(dbSelf, collectionSpec, requestOptions, cb)
     } else {
       assert(false, 'more than one collection')
     }
