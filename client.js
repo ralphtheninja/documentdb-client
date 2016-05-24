@@ -3,10 +3,7 @@
 // http://azure.github.io/azure-documentdb-node/DocumentClient.html
 
 const documentdb = require('documentdb')
-const DocumentClient = documentdb.DocumentClient
-const ConnectionPolicy = documentdb.DocumentBase.ConnectionPolicy
 const ConsistencyLevel = documentdb.DocumentBase.ConsistencyLevel
-
 const EventEmitter = require('events').EventEmitter
 const assert = require('assert')
 const inherits = require('inherits')
@@ -16,29 +13,25 @@ function DocumentDB (opts) {
     return new DocumentDB(opts)
   }
 
-  assert(opts, 'opts required')
+  opts = opts || {}
+
   assert(opts.databaseId, '.databaseId required')
   assert(opts.collectionId, '.collectionId required')
   assert(opts.host, '.host required')
   assert(opts.masterKey, '.masterKey required')
 
   const auth = { masterKey: opts.masterKey }
-  const policy = new ConnectionPolicy()
+  const policy = new documentdb.DocumentBase.ConnectionPolicy()
 
-  this.client = new DocumentClient(opts.host, auth, policy,
-                                   ConsistencyLevel.Strong)
-
-  function exit (err) {
-    console.error(err)
-    process.exit(1)
-  }
+  this.client = new documentdb.DocumentClient(opts.host, auth, policy,
+                                              ConsistencyLevel.Strong)
 
   createDatabase.call(this, opts.databaseId, (err, db) => {
-    if (err) exit(err)
+    if (err) throw err
     this.db = db
     assert(this.db._self, 'db must have a _self reference')
     createCollection.call(this, opts.collectionId, (err, coll) => {
-      if (err) exit(err)
+      if (err) throw err
       this.coll = coll
       assert(this.coll._self, 'collection must have a _self reference')
       this.emit('ready')
