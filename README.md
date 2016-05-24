@@ -1,4 +1,4 @@
-# documentdb-client
+# documentdb-client [![Build Status](https://travis-ci.org/ralphtheninja/documentdb-client.svg?branch=master)](https://travis-ci.org/ralphtheninja/documentdb-client)
 
 Convenience module for wrapping a [`DocumentDB`](https://github.com/Azure/azure-documentdb-node) collection with strong consistency and automatic indexing.
 
