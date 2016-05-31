@@ -102,7 +102,8 @@ DocumentDB.prototype.get = function (id, cb) {
 }
 
 DocumentDB.prototype.update = function (self, data, cb) {
-  this.client.replaceDocument(self, { data: data }, cb)
+  assert(typeof data.id === 'string', '.id must be set')
+  this.client.replaceDocument(self, { data: data, id: data.id }, cb)
 }
 
 DocumentDB.prototype.delete = function (self, cb) {
