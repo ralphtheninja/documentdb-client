@@ -130,12 +130,12 @@ test('.put() wraps createDocument()', function (t) {
 
 test('.update() wraps replaceDocument()', function (t) {
   const m = createMock()
-  const data = { some: 'data' }
+  const data = { some: 'data', id: 'someid' }
   m.db.update('self', data, () => {})
   t.equal(m.db.client.replaceDocument.calledOnce, true)
   t.same(m.db.client.replaceDocument.getCall(0).args[0], 'self')
   t.same(m.db.client.replaceDocument.getCall(0).args[1], {
-    data: data
+    data: data, id: 'someid'
   })
   t.equal(typeof m.db.client.replaceDocument.getCall(0).args[2], 'function', 'cb passed on')
   m.DocumentClient.restore()
