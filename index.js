@@ -53,7 +53,7 @@ function createDatabase (id, cb) {
       const requestOptions = { consistencyLevel: ConsistencyLevel.Strong }
       this.client.createDatabase(body, requestOptions, cb)
     } else {
-      assert(false, 'more than one database')
+      cb(new Error('more than one database'))
     }
   })
 }
