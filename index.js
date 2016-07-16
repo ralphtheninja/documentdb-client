@@ -7,6 +7,7 @@ const ConsistencyLevel = documentdb.DocumentBase.ConsistencyLevel
 const EventEmitter = require('events').EventEmitter
 const assert = require('assert')
 const inherits = require('inherits')
+const debug = require('debug')('documentdb-client')
 
 function DB (opts) {
   if (!(this instanceof DB)) {
@@ -16,7 +17,6 @@ function DB (opts) {
   opts = opts || {}
 
   assert(opts.databaseId, '.databaseId required')
-  assert(opts.collectionId, '.collectionId required')
   assert(opts.host, '.host required')
   assert(opts.masterKey, '.masterKey required')
 
@@ -30,12 +30,7 @@ function DB (opts) {
     if (err) throw err
     this.db = db
     assert(this.db._self, 'db must have a _self reference')
-    createCollection.call(this, opts.collectionId, (err, coll) => {
-      if (err) throw err
-      this.coll = coll
-      assert(this.coll._self, 'collection must have a _self reference')
-      this.emit('ready')
-    })
+    this.emit('ready')
   })
 }
 
@@ -47,10 +42,12 @@ function createDatabase (id, cb) {
     if (err) return cb(err)
     result = Array.isArray(result) ? result : []
     if (result.length === 1) {
+      debug('found existing db')
       return cb(null, result[0])
     } else if (result.length === 0) {
       const body = { id: id }
       const requestOptions = { consistencyLevel: ConsistencyLevel.Strong }
+      debug('creating new db')
       this.client.createDatabase(body, requestOptions, cb)
     } else {
       cb(new Error('more than one database'))
@@ -58,13 +55,45 @@ function createDatabase (id, cb) {
   })
 }
 
+DB.prototype.createCollection = function (id) {
+  assert(typeof id === 'string' && id.length > 0, 'missing collection id')
+  return new Collection(this, id)
+}
+
+function Collection (DB, id) {
+  this.DB = DB
+  this.id = id
+
+  const create = () => {
+    createCollection.call(this, id, (err, coll) => {
+      if (err) throw err
+      this.coll = coll
+      assert(this.coll._self, 'collection must have a _self reference')
+      this.emit('ready')
+    })
+  }
+
+  if (this.DB.db) {
+    debug('creating collection: db set')
+    create()
+  } else {
+    debug('creating collection: once db ready')
+    this.DB.once('ready', create)
+  }
+}
+
+inherits(Collection, EventEmitter)
+
 function createCollection (id, cb) {
+  assert(this.DB.db, '.db should be set')
+
   const query = createQueryById(id)
-  const dbSelf = this.db._self
-  this.client.queryCollections(dbSelf, query).toArray((err, result) => {
+  const dbSelf = this.DB.db._self
+  this.DB.client.queryCollections(dbSelf, query).toArray((err, result) => {
     if (err) return cb(err)
     result = Array.isArray(result) ? result : []
     if (result.length === 1) {
+      debug('found existing collection %s', id)
       return cb(null, result[0])
     } else if (result.length === 0) {
       const collectionSpec = {
@@ -75,19 +104,24 @@ function createCollection (id, cb) {
         }
       }
       const requestOptions = { offerType: 'S1' }
-      this.client.createCollection(dbSelf, collectionSpec, requestOptions, cb)
+      debug('creating collection %s', id)
+      this.DB.client.createCollection(dbSelf, collectionSpec, requestOptions, cb)
     } else {
-      assert(false, 'more than one collection')
+      cb(new Error('more than one collection'))
     }
   })
 }
 
-DB.prototype.put = function (data, cb) {
+Collection.prototype.put = function (data, cb) {
+  if (typeof this.coll === 'undefined') {
+    return this.once('ready', this.put.bind(this, data, cb))
+  }
   assert(typeof data.id === 'string', '.id must be set')
-  this.client.createDocument(this.coll._self, { data: data, id: data.id }, cb)
+  assert(typeof this.coll !== 'undefined', 'collection should be set')
+  this.DB.client.createDocument(this.coll._self, { data: data, id: data.id }, cb)
 }
 
-DB.prototype.get = function (id, cb) {
+Collection.prototype.get = function (id, cb) {
   const query = createQueryById(id)
   this.query(query, function (err, result) {
     if (err) return cb(err)
@@ -101,17 +135,21 @@ DB.prototype.get = function (id, cb) {
   })
 }
 
-DB.prototype.update = function (self, data, cb) {
+Collection.prototype.update = function (self, data, cb) {
   assert(typeof data.id === 'string', '.id must be set')
-  this.client.replaceDocument(self, { data: data, id: data.id }, cb)
+  this.DB.client.replaceDocument(self, { data: data, id: data.id }, cb)
 }
 
-DB.prototype.delete = function (self, cb) {
-  this.client.deleteDocument(self, cb)
+Collection.prototype.delete = function (self, cb) {
+  this.DB.client.deleteDocument(self, cb)
 }
 
-DB.prototype.query = function (query, cb) {
-  this.client.queryDocuments(this.coll._self, query)
+Collection.prototype.query = function (query, cb) {
+  if (typeof this.coll === 'undefined') {
+    return this.once('ready', this.query.bind(this, query, cb))
+  }
+  assert(typeof this.coll !== 'undefined', 'collection should be set')
+  this.DB.client.queryDocuments(this.coll._self, query)
     .toArray(function (err, result) {
       if (err) return cb(err)
       assert(Array.isArray(result), 'should be an array')

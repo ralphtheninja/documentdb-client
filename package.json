@@ -17,6 +17,7 @@
   "author": "Lars-Magnus Skog <ralphtheninja@riseup.net>",
   "license": "MIT",
   "dependencies": {
+    "debug": "^2.2.0",
     "documentdb": "^1.7.0",
     "inherits": "^2.0.1"
   },
