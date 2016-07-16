@@ -8,9 +8,9 @@ const EventEmitter = require('events').EventEmitter
 const assert = require('assert')
 const inherits = require('inherits')
 
-function DocumentDB (opts) {
-  if (!(this instanceof DocumentDB)) {
-    return new DocumentDB(opts)
+function DB (opts) {
+  if (!(this instanceof DB)) {
+    return new DB(opts)
   }
 
   opts = opts || {}
@@ -39,7 +39,7 @@ function DocumentDB (opts) {
   })
 }
 
-inherits(DocumentDB, EventEmitter)
+inherits(DB, EventEmitter)
 
 function createDatabase (id, cb) {
   const query = createQueryById(id)
@@ -82,12 +82,12 @@ function createCollection (id, cb) {
   })
 }
 
-DocumentDB.prototype.put = function (data, cb) {
+DB.prototype.put = function (data, cb) {
   assert(typeof data.id === 'string', '.id must be set')
   this.client.createDocument(this.coll._self, { data: data, id: data.id }, cb)
 }
 
-DocumentDB.prototype.get = function (id, cb) {
+DB.prototype.get = function (id, cb) {
   const query = createQueryById(id)
   this.query(query, function (err, result) {
     if (err) return cb(err)
@@ -101,16 +101,16 @@ DocumentDB.prototype.get = function (id, cb) {
   })
 }
 
-DocumentDB.prototype.update = function (self, data, cb) {
+DB.prototype.update = function (self, data, cb) {
   assert(typeof data.id === 'string', '.id must be set')
   this.client.replaceDocument(self, { data: data, id: data.id }, cb)
 }
 
-DocumentDB.prototype.delete = function (self, cb) {
+DB.prototype.delete = function (self, cb) {
   this.client.deleteDocument(self, cb)
 }
 
-DocumentDB.prototype.query = function (query, cb) {
+DB.prototype.query = function (query, cb) {
   this.client.queryDocuments(this.coll._self, query)
     .toArray(function (err, result) {
       if (err) return cb(err)
@@ -126,4 +126,4 @@ function createQueryById (id) {
   }
 }
 
-module.exports = DocumentDB
+module.exports = DB
