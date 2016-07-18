@@ -5,16 +5,17 @@ Convenience module for wrapping a [`DocumentDB`](https://github.com/Azure/azure-
 ### Usage
 
 ```js
-const createDb = require('documentdb-client')
-const db = createDb({
+const DB = require('documentdb-client')
+const db = DB({
   databaseId: 'my-documentdb',
-  collectionId: 'my-collection',
   host: 'https://my-documentdb.documents.azure.com:443/',
   masterKey: 'q7dMeDOhIUASP2GtWRPnrbZ6K7IO91AgaYiOCsvImmoUJKRSTjI7CNf0mEehGh4czRo17yED5AmPN1wERf367=='
 })
 
-db.put(data, function (err, result) {
-  db.get(data.id, function (err, result) {
+const coll = db.createCollection('my-collection')
+
+coll.put(data, function (err, result) {
+  coll.get(data.id, function (err, result) {
     if (!err) console.log('.get() OK', JSON.stringify(result, null, 2))
   })
 })
@@ -22,18 +23,29 @@ db.put(data, function (err, result) {
 
 ### Api
 
-#### `const db = createDb(options)`
+#### `const db = DB(options)`
 
 Creates a `DocumentDB` client where `options` take the following properties:
 
 * `databaseId` database id
-* `collectionId` collection id
 * `host` database host
 * `masterKey` database master key
 
-The database and the collection will be created if they don't exist.
+The database will be created if it doesn't exist.
 
-#### `db.put(data, cb)`
+#### `db.update(self, data, cb)`
+
+Updates document with `data` using document `self` reference.
+
+#### `db.delete(self, cb)`
+
+Deletes document with `data` using document `self` reference.
+
+#### `const coll = db.createCollection(id)`
+
+Returns a `Collection` object. Creates the collection if it doesn't exist.
+
+#### `coll.put(data, cb)`
 
 Stores `data` document as `{ data: data }` where `data.id` must be set. On success, calls back with the same JSON document with additional meta data properties set by `DocumentDB`.
 
@@ -55,21 +67,13 @@ Example of meta data properties:
 }
 ```
 
-#### `db.get(id, cb)`
+#### `coll.get(id, cb)`
 
-Calls back with `data` stored at `id`.
+Gets a document from a collection. Calls back with `data` stored at `id`.
 
-#### `db.update(self, data, cb)`
+#### `coll.query(query, cb)`
 
-Replaces document with `data` using `._self` meta property.
-
-#### `db.delete(self, cb)`
-
-Deletes document with `data` using `._self` meta property.
-
-#### `db.query(query, cb)`
-
-Queries the collection using an SQL `query`.
+Queries a collection using an SQL `query`.
 
 Example of a query using the document `id`:
 
@@ -79,6 +83,14 @@ const query = {
   parameters: [{ name: '@id', value: id }]
 }
 ```
+
+#### `coll.update(self, data, cb)`
+
+Aliases `db.update()`.
+
+#### `coll.delete(self, cb)`
+
+Aliases `db.delete()`.
 
 ### License
 
