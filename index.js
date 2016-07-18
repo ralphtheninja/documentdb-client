@@ -36,6 +36,15 @@ function DB (opts) {
 
 inherits(DB, EventEmitter)
 
+DB.prototype.update = function (self, data, cb) {
+  assert(typeof data.id === 'string', '.id must be set')
+  this.client.replaceDocument(self, { data: data, id: data.id }, cb)
+}
+
+DB.prototype.delete = function (self, cb) {
+  this.client.deleteDocument(self, cb)
+}
+
 function createDatabase (id, cb) {
   const query = createQueryById(id)
   this.client.queryDatabases(query).toArray((err, result) => {
@@ -136,12 +145,11 @@ Collection.prototype.get = function (id, cb) {
 }
 
 Collection.prototype.update = function (self, data, cb) {
-  assert(typeof data.id === 'string', '.id must be set')
-  this.DB.client.replaceDocument(self, { data: data, id: data.id }, cb)
+  this.DB.update(self, data, cb)
 }
 
 Collection.prototype.delete = function (self, cb) {
-  this.DB.client.deleteDocument(self, cb)
+  this.DB.delete(self, cb)
 }
 
 Collection.prototype.query = function (query, cb) {
