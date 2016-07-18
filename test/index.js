@@ -86,22 +86,25 @@ test('throws error if more than one database was found', function (t) {
   const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
     queryDatabases: sinon.stub().returns({ toArray: toArray })
   })
-  t.throws(DB.bind(null, getOpts()))
+  t.throws(DB.bind(null, getOpts()), /found more than one database/)
   DocumentClient.restore()
   t.end()
 })
 
 test('creates database if no one was found', function (t) {
   const dummyDb = { _self: 'db-self-pointer' }
-  const toArray = sinon.stub().yields(null, [])
   const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
-    queryDatabases: sinon.stub().returns({ toArray: toArray }),
+    queryDatabases: sinon.stub().returns({ toArray: sinon.stub().yields(null, []) }),
     createDatabase: sinon.stub().yields(null, dummyDb)
   })
   const db = DB(getOpts())
   t.equal(db.client.createDatabase.calledOnce, true)
-  t.same(db.client.createDatabase.getCall(0).args[0], { id: 'db-id' }, 'db created with correct id')
-  t.same(db.client.createDatabase.getCall(0).args[1], { consistencyLevel: 'Strong' }, 'strong consistency')
+  t.same(db.client.createDatabase.getCall(0).args[0], {
+    id: 'db-id'
+  }, 'db created with correct id')
+  t.same(db.client.createDatabase.getCall(0).args[1], {
+    consistencyLevel: 'Strong'
+  }, 'strong consistency')
   t.equal(db.db._self, 'db-self-pointer', 'correct _self reference')
   DocumentClient.restore()
   t.end()
@@ -120,116 +123,197 @@ test('DB emits ready when database is ready', function (t) {
   })
 })
 
-/*
-test('creates collection if no one was found', function (t) {
-  // TODO check that ready is emitted
-  const m = dbMock()
-  t.equal(m.db.client.createDatabase.calledOnce, true)
-  t.same(m.db.client.createDatabase.getCall(0).args[0], { id: 'db-id' }, 'db created with correct id')
-  t.same(m.db.client.createDatabase.getCall(0).args[1], { consistencyLevel: 'Strong' }, 'strong consistency')
-  t.equal(m.db.db._self, 'db-self-pointer', 'correct _self reference')
-  m.DocumentClient.restore()
+test('createCollection() throws if missing collection id', function (t) {
+  const dummyDb = { _self: 'db-self-pointer' }
+  const toArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
+  const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
+    queryDatabases: sinon.stub().returns({ toArray: toArray })
+  })
+  const db = DB(getOpts())
+  t.throws(db.createCollection.bind(db), /missing collection id/)
+  DocumentClient.restore()
   t.end()
+})
+
+test('existing collection', function (t) {
+  const dummyDb = { _self: 'db-self-pointer' }
+  const dummyColl = { _self: 'coll-self-pointer', id: 'dude' }
+  const dbToArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
+  const collToArray = sinon.stub().yields(null, [ dummyColl ])
+  const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
+    queryDatabases: sinon.stub().returns({ toArray: dbToArray }),
+    queryCollections: sinon.stub().returns({ toArray: collToArray }),
+    createCollection: sinon.stub()
+  })
+  const db = DB(getOpts())
+  db.on('ready', () => {
+    const coll = db.createCollection('dude')
+    t.equal(db.client.queryCollections.calledOnce, true)
+    t.equal(db.client.createCollection.calledOnce, false)
+    DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('throws error if more than one collection was found', function (t) {
+  const dummyDb = { _self: 'db-self-pointer' }
+  const dummyColl = { _self: 'coll-self-pointer', id: 'dude' }
+  const dbToArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
+  const collToArray = sinon.stub().yields(null, [ dummyColl, dummyColl ])
+  const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
+    queryDatabases: sinon.stub().returns({ toArray: dbToArray }),
+    queryCollections: sinon.stub().returns({ toArray: collToArray })
+  })
+  const db = DB(getOpts())
+  db.on('ready', () => {
+    t.throws(db.createCollection.bind(db, 'dude'), /found more than one collection/)
+    DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('creates collection if no one was found', function (t) {
+  const dummyDb = { _self: 'db-self-pointer' }
+  const dummyColl = { _self: 'coll-self-pointer' }
+  const dbToArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
+  const collToArray = sinon.stub().yields(null, [])
+  const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
+    queryDatabases: sinon.stub().returns({ toArray: dbToArray }),
+    queryCollections: sinon.stub().returns({ toArray: collToArray }),
+    createCollection: sinon.stub().yieldsAsync(null, dummyColl)
+  })
+  const db = DB(getOpts())
+  db.on('ready', () => {
+    const coll = db.createCollection('dude')
+    t.equal(db.client.queryCollections.calledOnce, true)
+    t.equal(db.client.createCollection.calledOnce, true)
+    t.same(db.client.createCollection.getCall(0).args[0], 'db-self-pointer')
+    t.same(db.client.createCollection.getCall(0).args[1], {
+      id: 'dude',
+      indexingPolicy: {
+        automatic: true,
+        indexingMode: 'Consistent'
+      }
+    }, 'correct collection specs')
+    t.same(db.client.createCollection.getCall(0).args[2], {
+      offerType: 'S1'
+    }, 'correct request options')
+    DocumentClient.restore()
+    t.end()
+  })
 })
 
 test('.put() asserts if missing id', function (t) {
-  const m = dbMock()
-  t.throws(m.db.put.bind(m.db, { no: 'id is set' }), /\.id must be set/)
-  m.DocumentClient.restore()
-  t.end()
+  const m = mock()
+  m.db.on('ready', () => {
+    t.throws(m.coll.put.bind(m.coll, { no: 'id is set' }), /\.id must be set/)
+    m.DocumentClient.restore()
+    t.end()
+  })
 })
 
 test('.put() wraps createDocument()', function (t) {
-  const m = dbMock()
-  m.db.put({ id: 'hereisanid' }, () => {})
-  t.equal(m.db.client.createDocument.calledOnce, true)
-  t.same(m.db.client.createDocument.getCall(0).args[0], 'collection-self-pointer')
-  t.same(m.db.client.createDocument.getCall(0).args[1], {
-    data: { id: 'hereisanid' },
-    id: 'hereisanid'
+  const m = mock()
+  m.db.on('ready', () => {
+    m.coll.put({ id: 'hereisanid' }, () => {})
+    t.equal(m.db.client.createDocument.calledOnce, true)
+    t.same(m.db.client.createDocument.getCall(0).args[0], 'coll-self-pointer')
+    t.same(m.db.client.createDocument.getCall(0).args[1], {
+      data: { id: 'hereisanid' },
+      id: 'hereisanid'
+    })
+    t.equal(typeof m.db.client.createDocument.getCall(0).args[2], 'function', 'cb passed on')
+    m.DocumentClient.restore()
+    t.end()
   })
-  t.equal(typeof m.db.client.createDocument.getCall(0).args[2], 'function', 'cb passed on')
-  m.DocumentClient.restore()
-  t.end()
 })
 
 test('.update() wraps replaceDocument()', function (t) {
-  const m = dbMock()
-  const data = { some: 'data', id: 'someid' }
-  m.db.update('self', data, () => {})
-  t.equal(m.db.client.replaceDocument.calledOnce, true)
-  t.same(m.db.client.replaceDocument.getCall(0).args[0], 'self')
-  t.same(m.db.client.replaceDocument.getCall(0).args[1], {
-    data: data, id: 'someid'
+  const m = mock()
+  m.db.on('ready', () => {
+    const data = { some: 'data', id: 'someid' }
+    m.coll.update('self', data, () => {})
+    t.equal(m.db.client.replaceDocument.calledOnce, true)
+    t.same(m.db.client.replaceDocument.getCall(0).args[0], 'self')
+    t.same(m.db.client.replaceDocument.getCall(0).args[1], {
+      data: data, id: 'someid'
+    })
+    t.equal(typeof m.db.client.replaceDocument.getCall(0).args[2], 'function', 'cb passed on')
+    m.DocumentClient.restore()
+    t.end()
   })
-  t.equal(typeof m.db.client.replaceDocument.getCall(0).args[2], 'function', 'cb passed on')
-  m.DocumentClient.restore()
-  t.end()
 })
 
 test('.delete() wraps deleteDocument()', function (t) {
-  const m = dbMock()
-  m.db.delete('self', () => {})
-  t.equal(m.db.client.deleteDocument.calledOnce, true)
-  t.same(m.db.client.deleteDocument.getCall(0).args[0], 'self')
-  t.equal(typeof m.db.client.deleteDocument.getCall(0).args[1], 'function', 'cb passed on')
-  m.DocumentClient.restore()
-  t.end()
+  const m = mock()
+  m.db.on('ready', () => {
+    m.coll.delete('self', () => {})
+    t.equal(m.db.client.deleteDocument.calledOnce, true)
+    t.same(m.db.client.deleteDocument.getCall(0).args[0], 'self')
+    t.equal(typeof m.db.client.deleteDocument.getCall(0).args[1], 'function', 'cb passed on')
+    m.DocumentClient.restore()
+    t.end()
+  })
 })
 
 test('.query() wraps queryDocuments()', function (t) {
-  const m = dbMock()
-  const query = {
-    query: 'SELECT * FROM root r WHERE r.id = @id',
-    parameters: [{ name: '@id', value: 'woohoo' }]
-  }
-  m.db.query(query, () => {})
-  t.equal(m.db.client.queryDocuments.calledOnce, true)
-  t.same(m.db.client.queryDocuments.getCall(0).args[0], 'collection-self-pointer')
-  t.same(m.db.client.queryDocuments.getCall(0).args[1], query, 'cb passed on')
-  m.DocumentClient.restore()
-  t.end()
+  const m = mock()
+  m.db.on('ready', () => {
+    const query = {
+      query: 'SELECT * FROM root r WHERE r.id = @id',
+      parameters: [{ name: '@id', value: 'woohoo' }]
+    }
+    m.coll.query(query, () => {})
+    t.equal(m.db.client.queryDocuments.calledOnce, true)
+    t.same(m.db.client.queryDocuments.getCall(0).args[0], 'coll-self-pointer')
+    t.same(m.db.client.queryDocuments.getCall(0).args[1], query, 'cb passed on')
+    m.DocumentClient.restore()
+    t.end()
+  })
 })
 
 test('.get() calls .query()', function (t) {
-  const m = dbMock()
-  const expectedQuery = {
-    query: 'SELECT * FROM root r WHERE r.id = @id',
-    parameters: [{ name: '@id', value: 'w00tw00t' }]
-  }
-  m.db.query = sinon.spy()
-  m.db.get('w00tw00t', () => {})
-  t.equal(m.db.query.calledOnce, true)
-  t.same(m.db.query.getCall(0).args[0], expectedQuery)
-  m.DocumentClient.restore()
-  t.end()
+  const m = mock()
+  m.db.on('ready', () => {
+    const expectedQuery = {
+      query: 'SELECT * FROM root r WHERE r.id = @id',
+      parameters: [{ name: '@id', value: 'w00tw00t' }]
+    }
+    m.coll.query = sinon.spy()
+    m.coll.get('w00tw00t', () => {})
+    t.equal(m.coll.query.calledOnce, true)
+    t.same(m.coll.query.getCall(0).args[0], expectedQuery)
+    m.DocumentClient.restore()
+    t.end()
+  })
 })
 
-function dbMock () {
+function mock () {
   const dummyDb = { _self: 'db-self-pointer' }
-  //const dummyCollection = { _self: 'collection-self-pointer' }
-  const toArray = sinon.stub().yields(null, [])
+  const dummyColl = { _self: 'coll-self-pointer' }
+  const dbToArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
+  const collToArray = sinon.stub().yields(null, [ dummyColl ])
+  const docToArray = sinon.stub().yields(null, [])
   const DocumentClient = sinon.stub(documentdb, 'DocumentClient').returns({
-    queryDatabases: sinon.stub().returns({ toArray: toArray }),
-    //queryCollections: sinon.stub().returns({ toArray: toArray }),
-    createDatabase: sinon.stub().yields(null, dummyDb)
-    //createCollection: sinon.stub().yields(null, dummyCollection),
-    //queryDocuments: sinon.stub().returns({ toArray: toArray }),
-    //createDocument: sinon.spy(),
-    //replaceDocument: sinon.spy(),
-    //deleteDocument: sinon.spy()
+    queryDatabases: sinon.stub().returns({ toArray: dbToArray }),
+    queryCollections: sinon.stub().returns({ toArray: collToArray }),
+    queryDocuments: sinon.stub().returns({ toArray: docToArray }),
+    createDocument: sinon.spy(),
+    replaceDocument: sinon.spy(),
+    deleteDocument: sinon.spy()
   })
+  const db = DB(getOpts())
+  const coll = db.createCollection('dude')
   return {
-    db: DB(getOpts()),
+    db: db,
+    coll: coll,
     DocumentClient: DocumentClient
   }
 }
-*/
 
 function getOpts () {
   return {
     databaseId: 'db-id',
-    //collectionId: 'collection-id',
     host: 'https://my-documentdb.documents.azure.com:443/',
     masterKey: 'a_master_key'
   }
