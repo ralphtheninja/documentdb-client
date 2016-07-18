@@ -59,7 +59,7 @@ function createDatabase (id, cb) {
       debug('creating new db')
       this.client.createDatabase(body, requestOptions, cb)
     } else {
-      cb(new Error('more than one database'))
+      cb(new Error('found more than one database'))
     }
   })
 }
@@ -116,7 +116,7 @@ function createCollection (id, cb) {
       debug('creating collection %s', id)
       this.DB.client.createCollection(dbSelf, collectionSpec, requestOptions, cb)
     } else {
-      cb(new Error('more than one collection'))
+      cb(new Error('found more than one collection'))
     }
   })
 }
