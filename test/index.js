@@ -147,7 +147,7 @@ test('existing collection', function (t) {
   })
   const db = DB(getOpts())
   db.on('ready', () => {
-    const coll = db.createCollection('dude')
+    db.createCollection('dude')
     t.equal(db.client.queryCollections.calledOnce, true)
     t.equal(db.client.createCollection.calledOnce, false)
     DocumentClient.restore()
@@ -184,7 +184,7 @@ test('creates collection if no one was found', function (t) {
   })
   const db = DB(getOpts())
   db.on('ready', () => {
-    const coll = db.createCollection('dude')
+    db.createCollection('dude')
     t.equal(db.client.queryCollections.calledOnce, true)
     t.equal(db.client.createCollection.calledOnce, true)
     t.same(db.client.createCollection.getCall(0).args[0], 'db-self-pointer')
