@@ -22,6 +22,7 @@ function DB (opts) {
 
   const auth = { masterKey: opts.masterKey }
   const policy = new documentdb.DocumentBase.ConnectionPolicy()
+  this.idProperty = opts.idProperty || 'id'
 
   this.client = new documentdb.DocumentClient(opts.host, auth, policy,
                                               ConsistencyLevel.Strong)
@@ -37,8 +38,10 @@ function DB (opts) {
 inherits(DB, EventEmitter)
 
 DB.prototype.update = function (self, data, cb) {
-  assert(typeof data.id === 'string', '.id must be set')
-  this.client.replaceDocument(self, { data: data, id: data.id }, cb)
+  const id = this.idProperty
+  assert(typeof data[id] === 'string', '.' + id + ' must be set')
+  assert(data[id].length > 0, '.' + id + ' must be of non zero length')
+  this.client.replaceDocument(self, { data: data, id: data[id] }, cb)
 }
 
 DB.prototype.delete = function (self, cb) {
@@ -125,9 +128,11 @@ Collection.prototype.put = function (data, cb) {
   if (typeof this.coll === 'undefined') {
     return this.once('ready', this.put.bind(this, data, cb))
   }
-  assert(typeof data.id === 'string', '.id must be set')
+  const id = this.DB.idProperty
+  assert(typeof data[id] === 'string', '.' + id + ' must be set')
+  assert(data[id].length > 0, '.' + id + ' must be of non zero length')
   assert(typeof this.coll !== 'undefined', 'collection should be set')
-  this.DB.client.createDocument(this.coll._self, { data: data, id: data.id }, cb)
+  this.DB.client.createDocument(this.coll._self, { data: data, id: data[id] }, cb)
 }
 
 Collection.prototype.get = function (id, cb) {

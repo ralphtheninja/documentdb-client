@@ -13,7 +13,7 @@ const db = DB({
 })
 
 const coll = db.createCollection('my-collection')
-
+const data = { id: '1234', some: 'value' }
 coll.put(data, function (err, result) {
   coll.get(data.id, function (err, result) {
     if (!err) console.log('.get() OK', JSON.stringify(result, null, 2))
@@ -27,9 +27,10 @@ coll.put(data, function (err, result) {
 
 Creates a `DocumentDB` client where `options` take the following properties:
 
-* `databaseId` database id
-* `host` database host
-* `masterKey` database master key
+* `databaseId` (string) database id
+* `host` (string) database host
+* `masterKey` (string) database master key
+* `idProperty` (string, optional) the `id` property of the data, defaults to `'id'`
 
 The database will be created if it doesn't exist.
 

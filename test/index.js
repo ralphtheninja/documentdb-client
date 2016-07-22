@@ -1,4 +1,5 @@
 const test = require('tape')
+const xtend = require('xtend')
 const sinon = require('sinon')
 const documentdb = require('documentdb')
 const DB = require('..')
@@ -203,10 +204,37 @@ test('creates collection if no one was found', function (t) {
   })
 })
 
-test('.put() asserts if missing id', function (t) {
+test('.put() throws if missing id property', function (t) {
   const m = mock()
   m.db.on('ready', () => {
     t.throws(m.coll.put.bind(m.coll, { no: 'id is set' }), /\.id must be set/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.put() throws if id property has length zero', function (t) {
+  const m = mock()
+  m.db.on('ready', () => {
+    t.throws(m.coll.put.bind(m.coll, { id: '' }), /\.id must be of non zero length/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.put() throws if missing id property, custom id property', function (t) {
+  const m = mock({ idProperty: 'YODUDE' })
+  m.db.on('ready', () => {
+    t.throws(m.coll.put.bind(m.coll, { no: 'id is set' }), /\.YODUDE must be set/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.put() with custom id property', function (t) {
+  const m = mock({ idProperty: 'YODUDE' })
+  m.db.on('ready', () => {
+    t.doesNotThrow(m.coll.put.bind(m.coll, { YODUDE: 'some id here' }))
     m.DocumentClient.restore()
     t.end()
   })
@@ -239,6 +267,54 @@ test('.update() wraps replaceDocument()', function (t) {
       data: data, id: 'someid'
     })
     t.equal(typeof m.db.client.replaceDocument.getCall(0).args[2], 'function', 'cb passed on')
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.update() throws if missing id property', function (t) {
+  const m = mock()
+  m.db.on('ready', () => {
+    const data = { some: 'data' }
+    t.throws(function () {
+      m.coll.update('self', data, () => {})
+    }, /\.id must be set/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.update() throws if id property has length zero', function (t) {
+  const m = mock()
+  m.db.on('ready', () => {
+    const data = { some: 'data', id: '' }
+    t.throws(function () {
+      m.coll.update('self', data, () => {})
+    }, /\.id must be of non zero length/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.update() throws is missing id property, custom id property', function (t) {
+  const m = mock({ idProperty: 'EYEDEE' })
+  m.db.on('ready', () => {
+    const data = { some: 'data' }
+    t.throws(function () {
+      m.coll.update('self', data, () => {})
+    }, /\.EYEDEE must be set/)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.update() with custom id property', function (t) {
+  const m = mock({ idProperty: 'EYEDEE' })
+  m.db.on('ready', () => {
+    const data = { some: 'data', EYEDEE: 'some id here' }
+    t.doesNotThrow(function () {
+      m.coll.update('self', data, () => {})
+    })
     m.DocumentClient.restore()
     t.end()
   })
@@ -288,7 +364,7 @@ test('.get() calls .query()', function (t) {
   })
 })
 
-function mock () {
+function mock (extra) {
   const dummyDb = { _self: 'db-self-pointer' }
   const dummyColl = { _self: 'coll-self-pointer' }
   const dbToArray = sinon.stub().yieldsAsync(null, [ dummyDb ])
@@ -302,7 +378,7 @@ function mock () {
     replaceDocument: sinon.spy(),
     deleteDocument: sinon.spy()
   })
-  const db = DB(getOpts())
+  const db = DB(xtend(getOpts(), extra))
   const coll = db.createCollection('dude')
   return {
     db: db,
