@@ -137,7 +137,7 @@ Collection.prototype.put = function (data, cb) {
 
 Collection.prototype.get = function (id, cb) {
   const query = createQueryById(id)
-  this.query(query, function (err, result) {
+  this.sqlquery(query, (err, result) => {
     if (err) return cb(err)
     if (result.length === 0) {
       let err = new Error('Did not find document')
@@ -157,13 +157,50 @@ Collection.prototype.delete = function (self, cb) {
   this.DB.delete(self, cb)
 }
 
-Collection.prototype.query = function (query, cb) {
+Collection.prototype.query = function (q, opts, cb) {
+  const limit = getLimit(opts)
+  const query = { query: `SELECT ${limit}* FROM root r` }
+
+  if (Object.keys(q).length > 0) {
+    query.query += ' WHERE'
+    query.parameters = []
+    Object.keys(q).forEach((key, index) => {
+      const KEY = keyify(key)
+      const value = q[key]
+      if (index !== 0) query.query += ' AND'
+      const identifier = key.replace(/\./g, '')
+      query.query += ` r.data${KEY} = @${identifier}`
+      query.parameters.push({ name: `@${identifier}`, value: value })
+    })
+  }
+
+  const ORDERBY = opts.ORDERBY
+  if (typeof ORDERBY === 'string' && ORDERBY.length > 0) {
+    const orderby = keyify(ORDERBY)
+    query.query += ` ORDER BY r.data${orderby}`
+    const sortby = opts.SORTBY
+    if (sortby === 'ASC' || sortby === 'DESC') {
+      query.query += ` ${sortby}`
+    }
+  }
+
+  this.sqlquery(query, (err, result) => {
+    const offset = opts.OFFSET
+    if (typeof offset === 'number' && offset < result.length) {
+      cb(null, result.slice(offset))
+    } else {
+      cb(null, result)
+    }
+  })
+}
+
+Collection.prototype.sqlquery = function (query, cb) {
   if (typeof this.coll === 'undefined') {
-    return this.once('ready', this.query.bind(this, query, cb))
+    return this.once('ready', this.sqlquery.bind(this, query, cb))
   }
   assert(typeof this.coll !== 'undefined', 'collection should be set')
   this.DB.client.queryDocuments(this.coll._self, query)
-    .toArray(function (err, result) {
+    .toArray((err, result) => {
       if (err) return cb(err)
       assert(Array.isArray(result), 'should be an array')
       cb(null, result)
@@ -175,6 +212,27 @@ function createQueryById (id) {
     query: 'SELECT * FROM root r WHERE r.id = @id',
     parameters: [{ name: '@id', value: id }]
   }
+}
+
+/**
+ * Returns TOP string based on LIMIT and OFFSET
+ */
+function getLimit (params) {
+  let top = 0
+  const limit = params.LIMIT
+  if (typeof limit === 'number') top += limit
+  const offset = params.OFFSET
+  if (typeof offset === 'number') top += offset
+  return (top > 0 ? `TOP ${top} ` : '')
+}
+
+/**
+ * Transforms a.b.c to ["a"]["b"]["c"].
+ * We need to do this because 'data.Value' is invalid because 'Value' is
+ * reserved so it must be transformed to ["data"]["Value"]
+ */
+function keyify (key) {
+  return key.split('.').map(i => '["' + i + '"]').join('')
 }
 
 module.exports = DB

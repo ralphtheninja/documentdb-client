@@ -332,14 +332,14 @@ test('.delete() wraps deleteDocument()', function (t) {
   })
 })
 
-test('.query() wraps queryDocuments()', function (t) {
+test('.sqlquery() wraps queryDocuments()', function (t) {
   const m = mock()
   m.db.on('ready', () => {
     const query = {
       query: 'SELECT * FROM root r WHERE r.id = @id',
       parameters: [{ name: '@id', value: 'woohoo' }]
     }
-    m.coll.query(query, () => {})
+    m.coll.sqlquery(query, () => {})
     t.equal(m.db.client.queryDocuments.calledOnce, true)
     t.same(m.db.client.queryDocuments.getCall(0).args[0], 'coll-self-pointer')
     t.same(m.db.client.queryDocuments.getCall(0).args[1], query, 'cb passed on')
@@ -348,17 +348,42 @@ test('.query() wraps queryDocuments()', function (t) {
   })
 })
 
-test('.get() calls .query()', function (t) {
+test('.get() calls .sqlquery()', function (t) {
   const m = mock()
   m.db.on('ready', () => {
     const expectedQuery = {
       query: 'SELECT * FROM root r WHERE r.id = @id',
       parameters: [{ name: '@id', value: 'w00tw00t' }]
     }
-    m.coll.query = sinon.spy()
+    m.coll.sqlquery = sinon.spy()
     m.coll.get('w00tw00t', () => {})
-    t.equal(m.coll.query.calledOnce, true)
-    t.same(m.coll.query.getCall(0).args[0], expectedQuery)
+    t.equal(m.coll.sqlquery.calledOnce, true)
+    t.same(m.coll.sqlquery.getCall(0).args[0], expectedQuery)
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
+test('.query() calls .sqlquery()', function (t) {
+  const m = mock()
+  m.db.on('ready', () => {
+    const q = {
+      foo: 'bar'
+    }
+    const opts = {
+      LIMIT: 10,
+      OFFSET: 10,
+      ORDERBY: 'foo',
+      SORTBY: 'DESC'
+    }
+    const expectedQuery = {
+      query: `SELECT TOP ${opts.LIMIT + opts.OFFSET} * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"] DESC`,
+      parameters: [{ name: '@foo', value: 'bar' }]
+    }
+    m.coll.sqlquery = sinon.spy()
+    m.coll.query(q, opts, () => {})
+    t.equal(m.coll.sqlquery.calledOnce, true)
+    t.same(m.coll.sqlquery.getCall(0).args[0], expectedQuery)
     m.DocumentClient.restore()
     t.end()
   })

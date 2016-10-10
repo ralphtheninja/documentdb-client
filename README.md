@@ -72,7 +72,24 @@ Example of meta data properties:
 
 Gets a document from a collection. Calls back with `data` stored at `id`.
 
-#### `coll.query(query, cb)`
+#### `coll.query(q, opts, cb)`
+
+A simplified query mechanism that builds a sql query based on properties of `q`. If you want more control use `.sqlquery()` which takes custom query objects.
+
+* `q` object with properties to query for
+* `opts` object
+* `opts.ORDERBY` order based on this property
+* `opts.SORTBY` sort by ascending (`'ASC'`) or descending (`'DESC'`), default is `'ASC'`
+* `opts.LIMIT` limit the results
+* `opts.OFFSET` offset of limited results
+
+Get all documents with the property `foo` set to `'bar'`, limit the results to `10` and offset `10`.
+
+```js
+coll.query({ foo: 'bar' }, { LIMIT: 10, OFFSET: 10 }, cb)
+```
+
+#### `coll.sqlquery(query, cb)`
 
 Queries a collection using an SQL `query`.
 
