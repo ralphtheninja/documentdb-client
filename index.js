@@ -185,6 +185,7 @@ Collection.prototype.query = function (q, opts, cb) {
   }
 
   this.sqlquery(query, (err, result) => {
+    if (err) return cb(err)
     const offset = opts.OFFSET
     if (typeof offset === 'number' && offset < result.length) {
       cb(null, result.slice(offset))
