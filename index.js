@@ -186,8 +186,8 @@ Collection.prototype.query = function (q, opts, cb) {
 
   this.sqlquery(query, (err, result) => {
     if (err) return cb(err)
-    const offset = opts.OFFSET
-    if (typeof offset === 'number' && offset < result.length) {
+    const offset = getOffset(opts)
+    if (offset < result.length) {
       cb(null, result.slice(offset))
     } else {
       cb(null, result)
@@ -220,11 +220,13 @@ function createQueryById (id) {
  */
 function getLimit (params) {
   let top = 0
-  const limit = params.LIMIT
-  if (typeof limit === 'number') top += limit
-  const offset = params.OFFSET
-  if (typeof offset === 'number') top += offset
+  if (params.LIMIT) top += Number(params.LIMIT)
+  top += getOffset(params)
   return (top > 0 ? `TOP ${top} ` : '')
+}
+
+function getOffset (params) {
+  return params.OFFSET ? Number(params.OFFSET) : 0
 }
 
 /**
