@@ -98,14 +98,16 @@ function getConjunction (values) {
 }
 
 function parseValue (value) {
-  let lt = value.match(/^lt\((\d+)\)/i)
-  if (lt) return { op: '<', value: Number(lt[1]) }
-  let lte = value.match(/^lte\((\d+)\)/i)
-  if (lte) return { op: '<=', value: Number(lte[1]) }
-  let gt = value.match(/^gt\((\d+)\)/i)
-  if (gt) return { op: '>', value: Number(gt[1]) }
-  let gte = value.match(/^gte\((\d+)\)/i)
-  if (gte) return { op: '>=', value: Number(gte[1]) }
+  if (typeof value === 'string') {
+    let lt = value.match(/^lt\((\d+)\)/i)
+    if (lt) return { op: '<', value: Number(lt[1]) }
+    let lte = value.match(/^lte\((\d+)\)/i)
+    if (lte) return { op: '<=', value: Number(lte[1]) }
+    let gt = value.match(/^gt\((\d+)\)/i)
+    if (gt) return { op: '>', value: Number(gt[1]) }
+    let gte = value.match(/^gte\((\d+)\)/i)
+    if (gte) return { op: '>=', value: Number(gte[1]) }
+  }
   return { op: '=', value: value }
 }
 
