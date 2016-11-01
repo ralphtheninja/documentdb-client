@@ -1,3 +1,5 @@
+'use strict'
+
 function buildQuery (q, opts) {
   opts = opts || {}
 
