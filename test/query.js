@@ -76,5 +76,32 @@ test('queries', t => {
       { name: '@foo', value: 'bar' }
     ]
   }, 'invalid SORTBY')
+  t.same(buildQuery({
+    foo: [ 'bar', 'baz' ]
+  }), {
+    query: 'SELECT * FROM root r WHERE (r.data["foo"] = @foo_0 OR r.data["foo"] = @foo_1)',
+    parameters: [
+      { name: '@foo_0', value: 'bar' },
+      { name: '@foo_1', value: 'baz' }
+    ]
+  }, 'multiple values')
+  t.same(buildQuery({
+    ts: [ 'gt(314)', 'lt(666)' ]
+  }), {
+    query: 'SELECT * FROM root r WHERE (r.data["ts"] > @ts_0 AND r.data["ts"] < @ts_1)',
+    parameters: [
+      { name: '@ts_0', value: 314 },
+      { name: '@ts_1', value: 666 }
+    ]
+  }, 'lt and gt')
+  t.same(buildQuery({
+    ts: [ 'gte(314)', 'lte(666)' ]
+  }), {
+    query: 'SELECT * FROM root r WHERE (r.data["ts"] >= @ts_0 AND r.data["ts"] <= @ts_1)',
+    parameters: [
+      { name: '@ts_0', value: 314 },
+      { name: '@ts_1', value: 666 }
+    ]
+  }, 'lte and gte')
   t.end()
 })

@@ -89,6 +89,23 @@ Get all documents with the property `foo` set to `'bar'`, limit the results to `
 coll.query({ foo: 'bar' }, { LIMIT: 10, OFFSET: 10 }, cb)
 ```
 
+The query object supports a simple way of quering for multiple values.
+
+Get all documents with `foo` set to `'bar'` _or_ `'baz'` with `ts` less than `1478008742351`.
+
+```js
+coll.query({ foo: [ 'bar', 'baz' ], ts: 'lt(1478008742351)' }, cb)
+```
+
+Supported operators:
+
+* '=' equality (default)
+* '<' less than, `lt(314)`
+* '<=' less than or equal, `lte(314)`
+* '>' greater than, `gt(314)`
+* '>=' greater than or equal, `gte(314)`
+
+
 #### `coll.sqlquery(query, cb)`
 
 Queries a collection using an SQL `query`.
