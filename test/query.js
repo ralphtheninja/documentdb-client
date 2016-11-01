@@ -11,6 +11,16 @@ test('queries', t => {
     ]
   }, 'property equality')
   t.same(buildQuery({
+    foo: false,
+    bar: true
+  }), {
+    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo AND r.data["bar"] = @bar',
+    parameters: [
+      { name: '@foo', value: false },
+      { name: '@bar', value: true }
+    ]
+  }, 'test booleans')
+  t.same(buildQuery({
     'a.b.c': 'baz'
   }), {
     query: 'SELECT * FROM root r WHERE r.data["a"]["b"]["c"] = @abc',
