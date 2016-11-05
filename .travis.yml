@@ -7,6 +7,6 @@ branches:
     - master
 
 node_js:
+  - '7'
   - '6'
-  - '5'
   - '4'
