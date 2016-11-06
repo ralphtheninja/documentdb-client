@@ -43,7 +43,7 @@ test('throws if queryDatabases() returns more than one database', function (t) {
   t.equal(DocumentClient.calledOnce, true)
   t.equal(queryDatabases.calledOnce, true)
   t.same(queryDatabases.getCall(0).args[0], {
-    query: 'SELECT * FROM root r WHERE r.id = @id',
+    query: 'SELECT * FROM root r WHERE r["id"] = @id',
     parameters: [ { name: '@id', value: 'db-id' } ]
   })
   t.equal(toArray.calledOnce, true)
@@ -204,117 +204,46 @@ test('creates collection if no one was found', function (t) {
   })
 })
 
-test('.put() throws if missing id property', function (t) {
+test('.put() sets id on data', function (t) {
   const m = mock()
   m.db.on('ready', () => {
-    t.throws(m.coll.put.bind(m.coll, { no: 'id is set' }), /\.id must be set/)
+    m.coll.put('anid', { some: 'data' })
+    t.equal(m.db.client.createDocument.calledOnce, true, 'should be called')
+    const call = m.db.client.createDocument.getCall(0)
+    t.same(call.args[1], { id: 'anid', some: 'data' }, 'id set')
     m.DocumentClient.restore()
     t.end()
   })
 })
 
-test('.put() throws if id property has length zero', function (t) {
-  const m = mock()
-  m.db.on('ready', () => {
-    t.throws(m.coll.put.bind(m.coll, { id: '' }), /\.id must be of non zero length/)
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.put() throws if missing id property, custom id property', function (t) {
+test('.put() sets id on data, custom id property', function (t) {
   const m = mock({ idProperty: 'YODUDE' })
   m.db.on('ready', () => {
-    t.throws(m.coll.put.bind(m.coll, { no: 'id is set' }), /\.YODUDE must be set/)
+    m.coll.put('anid', { some: 'data' })
+    t.equal(m.db.client.createDocument.calledOnce, true, 'should be called')
+    const call = m.db.client.createDocument.getCall(0)
+    t.same(call.args[1], { YODUDE: 'anid', some: 'data' }, 'id set')
     m.DocumentClient.restore()
     t.end()
   })
 })
 
-test('.put() with custom id property', function (t) {
-  const m = mock({ idProperty: 'YODUDE' })
-  m.db.on('ready', () => {
-    t.doesNotThrow(m.coll.put.bind(m.coll, { YODUDE: 'some id here' }))
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.put() wraps createDocument()', function (t) {
+test('.delete() calls .get to get _self reference', function (t) {
   const m = mock()
   m.db.on('ready', () => {
-    m.coll.put({ id: 'hereisanid' }, () => {})
-    t.equal(m.db.client.createDocument.calledOnce, true)
-    t.same(m.db.client.createDocument.getCall(0).args[0], 'coll-self-pointer')
-    t.same(m.db.client.createDocument.getCall(0).args[1], {
-      data: { id: 'hereisanid' },
-      id: 'hereisanid'
-    })
-    t.equal(typeof m.db.client.createDocument.getCall(0).args[2], 'function', 'cb passed on')
+    m.coll.get = sinon.stub()
+    m.coll.delete('self', () => {})
+    t.equal(m.coll.get.calledOnce, true)
     m.DocumentClient.restore()
     t.end()
   })
 })
 
-test('.update() wraps replaceDocument()', function (t) {
+test('.delete() asserts if no _self reference exists', function (t) {
   const m = mock()
   m.db.on('ready', () => {
-    const data = { some: 'data', id: 'someid' }
-    m.coll.update('self', data, () => {})
-    t.equal(m.db.client.replaceDocument.calledOnce, true)
-    t.same(m.db.client.replaceDocument.getCall(0).args[0], 'self')
-    t.same(m.db.client.replaceDocument.getCall(0).args[1], {
-      data: data, id: 'someid'
-    })
-    t.equal(typeof m.db.client.replaceDocument.getCall(0).args[2], 'function', 'cb passed on')
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.update() throws if missing id property', function (t) {
-  const m = mock()
-  m.db.on('ready', () => {
-    const data = { some: 'data' }
-    t.throws(function () {
-      m.coll.update('self', data, () => {})
-    }, /\.id must be set/)
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.update() throws if id property has length zero', function (t) {
-  const m = mock()
-  m.db.on('ready', () => {
-    const data = { some: 'data', id: '' }
-    t.throws(function () {
-      m.coll.update('self', data, () => {})
-    }, /\.id must be of non zero length/)
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.update() throws is missing id property, custom id property', function (t) {
-  const m = mock({ idProperty: 'EYEDEE' })
-  m.db.on('ready', () => {
-    const data = { some: 'data' }
-    t.throws(function () {
-      m.coll.update('self', data, () => {})
-    }, /\.EYEDEE must be set/)
-    m.DocumentClient.restore()
-    t.end()
-  })
-})
-
-test('.update() with custom id property', function (t) {
-  const m = mock({ idProperty: 'EYEDEE' })
-  m.db.on('ready', () => {
-    const data = { some: 'data', EYEDEE: 'some id here' }
-    t.doesNotThrow(function () {
-      m.coll.update('self', data, () => {})
-    })
+    m.coll.get = sinon.stub().yields(null, { some: 'data' })
+    t.throws(m.coll.delete.bind(m.coll, 'self', () => {}), /should have _self set/)
     m.DocumentClient.restore()
     t.end()
   })
@@ -323,9 +252,10 @@ test('.update() with custom id property', function (t) {
 test('.delete() wraps deleteDocument()', function (t) {
   const m = mock()
   m.db.on('ready', () => {
-    m.coll.delete('self', () => {})
+    m.coll.get = sinon.stub().yields(null, { some: 'data', _self: 'reference' })
+    m.coll.delete('id', () => {})
     t.equal(m.db.client.deleteDocument.calledOnce, true)
-    t.same(m.db.client.deleteDocument.getCall(0).args[0], 'self')
+    t.same(m.db.client.deleteDocument.getCall(0).args[0], 'reference')
     t.equal(typeof m.db.client.deleteDocument.getCall(0).args[1], 'function', 'cb passed on')
     m.DocumentClient.restore()
     t.end()
@@ -352,7 +282,7 @@ test('.get() calls .sqlquery()', function (t) {
   const m = mock()
   m.db.on('ready', () => {
     const expectedQuery = {
-      query: 'SELECT * FROM root r WHERE r.id = @id',
+      query: 'SELECT * FROM root r WHERE r["id"] = @id',
       parameters: [{ name: '@id', value: 'w00tw00t' }]
     }
     m.coll.sqlquery = sinon.spy()
@@ -377,7 +307,7 @@ test('.query() calls .sqlquery()', function (t) {
       SORTBY: 'DESC'
     }
     const expectedQuery = {
-      query: `SELECT TOP ${opts.LIMIT + opts.OFFSET} * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"] DESC`,
+      query: `SELECT TOP ${opts.LIMIT + opts.OFFSET} * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"] DESC`,
       parameters: [{ name: '@foo', value: 'bar' }]
     }
     m.coll.sqlquery = sinon.spy()

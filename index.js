@@ -39,19 +39,8 @@ function DB (opts) {
 
 inherits(DB, EventEmitter)
 
-DB.prototype.update = function (self, data, cb) {
-  const id = this.idProperty
-  assert(typeof data[id] === 'string', '.' + id + ' must be set')
-  assert(data[id].length > 0, '.' + id + ' must be of non zero length')
-  this.client.replaceDocument(self, { data: data, id: data[id] }, cb)
-}
-
-DB.prototype.delete = function (self, cb) {
-  this.client.deleteDocument(self, cb)
-}
-
 function createDatabase (id, cb) {
-  const query = createQueryById(id)
+  const query = queryByProperty('id', id)
   this.client.queryDatabases(query).toArray((err, result) => {
     if (err) return cb(err)
     result = Array.isArray(result) ? result : []
@@ -101,8 +90,8 @@ inherits(Collection, EventEmitter)
 function createCollection (id, cb) {
   assert(this.DB.db, '.db should be set')
 
-  const query = createQueryById(id)
   const dbSelf = this.DB.db._self
+  const query = queryByProperty('id', id)
   this.DB.client.queryCollections(dbSelf, query).toArray((err, result) => {
     if (err) return cb(err)
     result = Array.isArray(result) ? result : []
@@ -126,19 +115,8 @@ function createCollection (id, cb) {
   })
 }
 
-Collection.prototype.put = function (data, cb) {
-  if (typeof this.coll === 'undefined') {
-    return this.once('ready', this.put.bind(this, data, cb))
-  }
-  const id = this.DB.idProperty
-  assert(typeof data[id] === 'string', '.' + id + ' must be set')
-  assert(data[id].length > 0, '.' + id + ' must be of non zero length')
-  assert(typeof this.coll !== 'undefined', 'collection should be set')
-  this.DB.client.createDocument(this.coll._self, { data: data, id: data[id] }, cb)
-}
-
 Collection.prototype.get = function (id, cb) {
-  const query = createQueryById(id)
+  const query = queryByProperty(this.DB.idProperty, id)
   this.sqlquery(query, (err, result) => {
     if (err) return cb(err)
     if (result.length === 0) {
@@ -151,12 +129,27 @@ Collection.prototype.get = function (id, cb) {
   })
 }
 
-Collection.prototype.update = function (self, data, cb) {
-  this.DB.update(self, data, cb)
+Collection.prototype.put = function (id, data, cb) {
+  if (typeof this.coll === 'undefined') {
+    return this.once('ready', this.put.bind(this, id, data, cb))
+  }
+  assert(typeof this.coll !== 'undefined', 'collection should be set')
+  const idProperty = this.DB.idProperty
+  if (data._self) {
+    assert.equal(id, data[idProperty], 'key does not match in document')
+    this.DB.client.replaceDocument(data._self, data, cb)
+  } else {
+    data[idProperty] = id
+    this.DB.client.createDocument(this.coll._self, data, cb)
+  }
 }
 
-Collection.prototype.delete = function (self, cb) {
-  this.DB.delete(self, cb)
+Collection.prototype.delete = function (id, cb) {
+  this.get(id, (err, result) => {
+    if (err) return cb(err)
+    assert(result._self, 'should have _self set')
+    this.DB.client.deleteDocument(result._self, cb)
+  })
 }
 
 Collection.prototype.query = function (q, opts, cb) {
@@ -185,10 +178,11 @@ Collection.prototype.sqlquery = function (query, cb) {
     })
 }
 
-function createQueryById (id) {
+function queryByProperty (idProperty, value) {
+  const prop = util.keyify(idProperty)
   return {
-    query: 'SELECT * FROM root r WHERE r.id = @id',
-    parameters: [{ name: '@id', value: id }]
+    query: `SELECT * FROM root r WHERE r${prop} = @id`,
+    parameters: [{ name: '@id', value: value }]
   }
 }
 

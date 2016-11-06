@@ -21,7 +21,7 @@ function buildQuery (params, opts) {
   const ORDERBY = opts.ORDERBY
   if (typeof ORDERBY === 'string' && ORDERBY.length > 0) {
     const orderby = keyify(ORDERBY)
-    query.push(`ORDER BY r.data${orderby}`)
+    query.push(`ORDER BY r${orderby}`)
     const sortby = opts.SORTBY
     if (sortby === 'ASC' || sortby === 'DESC') {
       query.push(`${sortby}`)
@@ -41,7 +41,7 @@ function subQuery (key, value) {
     let identifier = `${key.replace(/\./g, '')}`
     let parsed = parseValue(value)
     return {
-      conditions: `r.data${KEY} ${parsed.op} @${identifier}`,
+      conditions: `r${KEY} ${parsed.op} @${identifier}`,
       parameters: [ { name: `@${identifier}`, value: parsed.value } ]
     }
   }
@@ -53,7 +53,7 @@ function subQuery (key, value) {
   value.forEach((value, j) => {
     let identifier = `${key.replace(/\./g, '')}_${j}`
     let parsed = parseValue(value)
-    conditions.push(`r.data${KEY} ${parsed.op} @${identifier}`)
+    conditions.push(`r${KEY} ${parsed.op} @${identifier}`)
     parameters.push({ name: `@${identifier}`, value: parsed.value })
   })
 

@@ -34,32 +34,21 @@ Creates a `DocumentDB` client where `options` take the following properties:
 
 The database will be created if it doesn't exist.
 
-#### `db.update(self, data, cb)`
-
-Updates document with `data` using document `self` reference.
-
-#### `db.delete(self, cb)`
-
-Deletes document with `data` using document `self` reference.
-
 #### `const coll = db.createCollection(id)`
 
 Returns a `Collection` object. Creates the collection if it doesn't exist.
 
-#### `coll.put(data, cb)`
+#### `coll.put(id, data, cb)`
 
-Stores `data` document as `{ data: data }` where `data.id` must be set. On success, calls back with the same JSON document with additional meta data properties set by `DocumentDB`.
+Stores `data` document with `id`. On success, calls back with the same JSON document with additional meta data properties set by `DocumentDB`.
 
 Example of meta data properties:
 
 ```json
 {
-  "data": {
-    "key1": "value1",
-    "key2": "value2",
-    "id": "AGJMqmtbTVarTf"
-  },
-  "id": "AGJMqmtbTVarTf",
+  "key1": "value1",
+  "key2": "value2",
+  "id": "AGJMqmtbTVarTf"
   "_rid": "Mwl6APp1TAAXBBBBBB==",
   "_self": "dbs/Mwl6AA==/colls/Mwl6APp1TAA=/docs/Mwl6APp1TAAXBBBBBB==/",
   "_etag": "\"00000800-0000-0000-0000-5744210b0000\"",
@@ -68,9 +57,15 @@ Example of meta data properties:
 }
 ```
 
+If `put` is called with `data` and `data._self` exists then the document will be updated with the new data.
+
 #### `coll.get(id, cb)`
 
 Gets a document from a collection. Calls back with `data` stored at `id`.
+
+#### `coll.delete(id, cb)`
+
+Deletes a document from a collection.
 
 #### `coll.query(q, opts, cb)`
 
@@ -118,14 +113,6 @@ const query = {
   parameters: [{ name: '@id', value: id }]
 }
 ```
-
-#### `coll.update(self, data, cb)`
-
-Aliases `db.update()`.
-
-#### `coll.delete(self, cb)`
-
-Aliases `db.delete()`.
 
 ### License
 

@@ -5,7 +5,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -14,7 +14,7 @@ test('queries', t => {
     foo: false,
     bar: true
   }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo AND r.data["bar"] = @bar',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo AND r["bar"] = @bar',
     parameters: [
       { name: '@foo', value: false },
       { name: '@bar', value: true }
@@ -23,7 +23,7 @@ test('queries', t => {
   t.same(buildQuery({
     'a.b.c': 'baz'
   }), {
-    query: 'SELECT * FROM root r WHERE r.data["a"]["b"]["c"] = @abc',
+    query: 'SELECT * FROM root r WHERE r["a"]["b"]["c"] = @abc',
     parameters: [
       { name: '@abc', value: 'baz' }
     ]
@@ -32,7 +32,7 @@ test('queries', t => {
     foo: 'bar',
     'a.b.c': 'baz'
   }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo AND r.data["a"]["b"]["c"] = @abc',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo AND r["a"]["b"]["c"] = @abc',
     parameters: [
       { name: '@foo', value: 'bar' },
       { name: '@abc', value: 'baz' }
@@ -41,7 +41,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { LIMIT: 10 }), {
-    query: 'SELECT TOP 10 * FROM root r WHERE r.data["foo"] = @foo',
+    query: 'SELECT TOP 10 * FROM root r WHERE r["foo"] = @foo',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -49,7 +49,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { ORDERBY: 'foo' }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"]',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"]',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -57,7 +57,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { SORTBY: 'ASC' }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -65,7 +65,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { ORDERBY: 'foo', SORTBY: 'ASC' }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"] ASC',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"] ASC',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -73,7 +73,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { ORDERBY: 'foo', SORTBY: 'DESC' }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"] DESC',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"] DESC',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -81,7 +81,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: 'bar'
   }, { ORDERBY: 'foo', SORTBY: 'invalid' }), {
-    query: 'SELECT * FROM root r WHERE r.data["foo"] = @foo ORDER BY r.data["foo"]',
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"]',
     parameters: [
       { name: '@foo', value: 'bar' }
     ]
@@ -89,7 +89,7 @@ test('queries', t => {
   t.same(buildQuery({
     foo: [ 'bar', 'baz' ]
   }), {
-    query: 'SELECT * FROM root r WHERE (r.data["foo"] = @foo_0 OR r.data["foo"] = @foo_1)',
+    query: 'SELECT * FROM root r WHERE (r["foo"] = @foo_0 OR r["foo"] = @foo_1)',
     parameters: [
       { name: '@foo_0', value: 'bar' },
       { name: '@foo_1', value: 'baz' }
@@ -98,7 +98,7 @@ test('queries', t => {
   t.same(buildQuery({
     ts: [ 'gt(314)', 'lt(666)' ]
   }), {
-    query: 'SELECT * FROM root r WHERE (r.data["ts"] > @ts_0 AND r.data["ts"] < @ts_1)',
+    query: 'SELECT * FROM root r WHERE (r["ts"] > @ts_0 AND r["ts"] < @ts_1)',
     parameters: [
       { name: '@ts_0', value: 314 },
       { name: '@ts_1', value: 666 }
@@ -107,7 +107,7 @@ test('queries', t => {
   t.same(buildQuery({
     ts: [ 'gte(314)', 'lte(666)' ]
   }), {
-    query: 'SELECT * FROM root r WHERE (r.data["ts"] >= @ts_0 AND r.data["ts"] <= @ts_1)',
+    query: 'SELECT * FROM root r WHERE (r["ts"] >= @ts_0 AND r["ts"] <= @ts_1)',
     parameters: [
       { name: '@ts_0', value: 314 },
       { name: '@ts_1', value: 666 }
