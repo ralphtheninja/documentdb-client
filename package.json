@@ -1,7 +1,7 @@
 {
   "name": "documentdb-client",
   "version": "4.1.1",
-  "description": "DocumentDB wrapper with strong consistency and automatic indexing",
+  "description": "DocumentDB wrapper with automatic indexing",
   "main": "index.js",
   "scripts": {
     "test": "tape test",
