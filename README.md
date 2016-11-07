@@ -13,8 +13,8 @@ const db = DB({
 })
 
 const coll = db.createCollection('my-collection')
-const data = { id: '1234', some: 'value' }
-coll.put(data, function (err, result) {
+const data = { some: 'value' }
+coll.put('1234', data, function (err, result) {
   coll.get(data.id, function (err, result) {
     if (!err) console.log('.get() OK', JSON.stringify(result, null, 2))
   })
