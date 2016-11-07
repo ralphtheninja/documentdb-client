@@ -3,7 +3,6 @@
 // http://azure.github.io/azure-documentdb-node/DocumentClient.html
 
 const documentdb = require('documentdb')
-const ConsistencyLevel = documentdb.DocumentBase.ConsistencyLevel
 const EventEmitter = require('events').EventEmitter
 const assert = require('assert')
 const inherits = require('inherits')
@@ -22,12 +21,13 @@ function DB (opts) {
   assert(opts.host, '.host required')
   assert(opts.masterKey, '.masterKey required')
 
+  this.consistencyLevel = opts.consistencyLevel || 'Strong'
   const auth = { masterKey: opts.masterKey }
   const policy = new documentdb.DocumentBase.ConnectionPolicy()
   this.idProperty = opts.idProperty || 'id'
 
   this.client = new documentdb.DocumentClient(opts.host, auth, policy,
-                                              ConsistencyLevel.Strong)
+                                              this.consistencyLevel)
 
   createDatabase.call(this, opts.databaseId, (err, db) => {
     if (err) throw err
@@ -49,7 +49,7 @@ function createDatabase (id, cb) {
       return cb(null, result[0])
     } else if (result.length === 0) {
       const body = { id: id }
-      const requestOptions = { consistencyLevel: ConsistencyLevel.Strong }
+      const requestOptions = { consistencyLevel: this.consistencyLevel }
       debug('creating new db')
       this.client.createDatabase(body, requestOptions, cb)
     } else {

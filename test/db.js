@@ -77,6 +77,7 @@ test('returns existing database if one existing was found', function (t) {
   })
   const db = DB(getOpts())
   t.equal(db.db._self, dummy._self, 'correct _self reference')
+  t.equal(db.consistencyLevel, 'Strong', 'default strong consistency')
   DocumentClient.restore()
   t.end()
 })
@@ -98,14 +99,13 @@ test('creates database if no one was found', function (t) {
     queryDatabases: sinon.stub().returns({ toArray: sinon.stub().yields(null, []) }),
     createDatabase: sinon.stub().yields(null, dummyDb)
   })
-  const db = DB(getOpts())
+  const consistency = { consistencyLevel: 'Session' }
+  const db = DB(getOpts(consistency))
   t.equal(db.client.createDatabase.calledOnce, true)
   t.same(db.client.createDatabase.getCall(0).args[0], {
     id: 'db-id'
   }, 'db created with correct id')
-  t.same(db.client.createDatabase.getCall(0).args[1], {
-    consistencyLevel: 'Strong'
-  }, 'strong consistency')
+  t.same(db.client.createDatabase.getCall(0).args[1], consistency, 'correct consistency')
   t.equal(db.db._self, 'db-self-pointer', 'correct _self reference')
   DocumentClient.restore()
   t.end()
@@ -342,10 +342,10 @@ function mock (extra) {
   }
 }
 
-function getOpts () {
-  return {
+function getOpts (extras) {
+  return xtend({
     databaseId: 'db-id',
     host: 'https://my-documentdb.documents.azure.com:443/',
     masterKey: 'a_master_key'
-  }
+  }, extras)
 }
