@@ -31,6 +31,7 @@ Creates a `DocumentDB` client where `options` take the following properties:
 * `host` (string) database host
 * `masterKey` (string) database master key
 * `idProperty` (string, optional) the `id` property of the data, defaults to `'id'`
+* `consistencyLevel` (string, optional) consistency level, defaults to `'Strong'`
 
 The database will be created if it doesn't exist.
 
