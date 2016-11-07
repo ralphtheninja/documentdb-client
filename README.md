@@ -49,7 +49,7 @@ Example of meta data properties:
 {
   "key1": "value1",
   "key2": "value2",
-  "id": "AGJMqmtbTVarTf"
+  "id": "AGJMqmtbTVarTf",
   "_rid": "Mwl6APp1TAAXBBBBBB==",
   "_self": "dbs/Mwl6AA==/colls/Mwl6APp1TAA=/docs/Mwl6APp1TAAXBBBBBB==/",
   "_etag": "\"00000800-0000-0000-0000-5744210b0000\"",
