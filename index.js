@@ -144,6 +144,14 @@ Collection.prototype.put = function (id, data, cb) {
   }
 }
 
+Collection.prototype.upsert = function (id, data, cb) {
+  if (typeof this.coll === 'undefined') {
+    return this.once('ready', this.upsert.bind(this, id, data, cb))
+  }
+  assert(typeof this.coll !== 'undefined', 'collection should be set')
+  this.DB.client.upsertDocument(this.coll._self, data, cb)
+}
+
 Collection.prototype.delete = function (id, cb) {
   this.get(id, (err, result) => {
     if (err) return cb(err)

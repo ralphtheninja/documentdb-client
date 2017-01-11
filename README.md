@@ -60,6 +60,10 @@ Example of meta data properties:
 
 If `put` is called with `data` and `data._self` exists then the document will be updated with the new data.
 
+#### `coll.upsert(id, data, cb)`
+
+Atomic create/update. This is to be preferred over `.put()` which is for backwards compatibility.
+
 #### `coll.get(id, cb)`
 
 Gets a document from a collection. Calls back with `data` stored at `id`.

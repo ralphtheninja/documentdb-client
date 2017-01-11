@@ -216,6 +216,19 @@ test('.put() sets id on data', function (t) {
   })
 })
 
+test('.upsert() wraps upsertDocument()', function (t) {
+  const m = mock()
+  m.db.on('ready', () => {
+    m.coll.upsert('anid', { id: 'anid', some: 'data' })
+    t.equal(m.db.client.upsertDocument.calledOnce, true, 'should be called')
+    const call = m.db.client.upsertDocument.getCall(0)
+    t.equal(call.args[0], 'coll-self-pointer')
+    t.same(call.args[1], { id: 'anid', some: 'data' })
+    m.DocumentClient.restore()
+    t.end()
+  })
+})
+
 test('.put() sets id on data, custom id property', function (t) {
   const m = mock({ idProperty: 'YODUDE' })
   m.db.on('ready', () => {
@@ -331,6 +344,7 @@ function mock (extra) {
     queryDocuments: sinon.stub().returns({ toArray: docToArray }),
     createDocument: sinon.spy(),
     replaceDocument: sinon.spy(),
+    upsertDocument: sinon.spy(),
     deleteDocument: sinon.spy()
   })
   const db = DB(xtend(getOpts(), extra))
