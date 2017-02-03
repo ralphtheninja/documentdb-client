@@ -78,10 +78,10 @@ A simplified query mechanism that builds a sql query based on properties of `q`.
 
 * `q` object with properties to query for
 * `opts` object
-* `opts.ORDERBY` order based on this property
-* `opts.SORTBY` sort by ascending (`'ASC'`) or descending (`'DESC'`), default is `'ASC'`
-* `opts.LIMIT` limit the results
-* `opts.OFFSET` offset of limited results
+* `opts.orderby` order based on this property
+* `opts.sortby` sort by ascending (`'asc'`) or descending (`'desc'`), default is `'asc'`
+* `opts.limit` limit the results
+* `opts.offset` offset of limited results
 
 Get all documents with the property `foo` set to `'bar'`, limit the results to `10` and offset `10`.
 

@@ -7,7 +7,7 @@ const EventEmitter = require('events').EventEmitter
 const assert = require('assert')
 const inherits = require('inherits')
 const debug = require('debug')('documentdb-client')
-
+const lowerCase = require('lowercase-keys')
 const util = require('./util')
 
 function DB (opts) {
@@ -161,10 +161,14 @@ Collection.prototype.delete = function (id, cb) {
 }
 
 Collection.prototype.query = function (q, opts, cb) {
+  if (typeof opts === 'function') {
+    cb = opts
+    opts = {}
+  }
   const query = util.buildQuery(q, opts)
   this.sqlquery(query, (err, result) => {
     if (err) return cb(err)
-    const offset = util.getOffset(opts)
+    const offset = util.getOffset(lowerCase(opts))
     if (offset < result.length) {
       cb(null, result.slice(offset))
     } else {

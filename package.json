@@ -20,7 +20,8 @@
   "dependencies": {
     "debug": "^2.2.0",
     "documentdb": "^1.7.0",
-    "inherits": "^2.0.1"
+    "inherits": "^2.0.1",
+    "lowercase-keys": "^1.0.0"
   },
   "devDependencies": {
     "dependency-check": "^2.6.0",

@@ -1,7 +1,9 @@
 'use strict'
 
-function buildQuery (params, opts) {
-  opts = opts || {}
+const lowerCase = require('lowercase-keys')
+
+function buildQuery (params, OPTS) {
+  const opts = lowerCase(OPTS || {})
 
   const limit = getLimit(opts)
   const query = [ `SELECT ${limit}* FROM root r` ]
@@ -18,13 +20,13 @@ function buildQuery (params, opts) {
     query.push(conditions.join(' AND '))
   }
 
-  const ORDERBY = opts.ORDERBY
+  const ORDERBY = opts.orderby
   if (typeof ORDERBY === 'string' && ORDERBY.length > 0) {
     const orderby = keyify(ORDERBY)
     query.push(`ORDER BY r${orderby}`)
-    const sortby = opts.SORTBY
-    if (sortby === 'ASC' || sortby === 'DESC') {
-      query.push(`${sortby}`)
+    const sortby = typeof opts.sortby === 'string' ? opts.sortby.toLowerCase() : ''
+    if (sortby === 'asc' || sortby === 'desc') {
+      query.push(`${sortby.toUpperCase()}`)
     }
   }
 
@@ -73,17 +75,17 @@ function keyify (key) {
 }
 
 /**
- * Returns TOP string based on LIMIT and OFFSET
+ * Returns TOP string based on limit and offset
  */
-function getLimit (params) {
+function getLimit (opts) {
   let top = 0
-  if (params.LIMIT) top += Number(params.LIMIT)
-  top += getOffset(params)
+  if (opts.limit) top += Number(opts.limit)
+  top += getOffset(opts)
   return (top > 0 ? `TOP ${top} ` : '')
 }
 
 function getOffset (params) {
-  return params.OFFSET ? Number(params.OFFSET) : 0
+  return params.offset ? Number(params.offset) : 0
 }
 
 /**

@@ -72,6 +72,14 @@ test('queries', t => {
   }, 'SORTBY ASC')
   t.same(buildQuery({
     foo: 'bar'
+  }, { orDerBy: 'foo', soRTBY: 'aSC' }), {
+    query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"] ASC',
+    parameters: [
+      { name: '@foo', value: 'bar' }
+    ]
+  }, 'orderby and sortby is case insensitive')
+  t.same(buildQuery({
+    foo: 'bar'
   }, { ORDERBY: 'foo', SORTBY: 'DESC' }), {
     query: 'SELECT * FROM root r WHERE r["foo"] = @foo ORDER BY r["foo"] DESC',
     parameters: [
